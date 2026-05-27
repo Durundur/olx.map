@@ -1,0 +1,22 @@
+{
+  "name": "olx.map",
+  "version": "1.0.0",
+  "description": "",
+  "main": "content.js",
+  "scripts": {
+    "build": "esbuild ./content.js --bundle --outdir=dist --format=iife --loader:.css=css --loader:.png=dataurl --loader:.svg=text",
+    "dev": "npm run build -- --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^25.9.1",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "cpx": "^1.5.0",
+    "esbuild": "0.28.0"
+  }
+}
