@@ -62,8 +62,23 @@ export class MapManager {
 
 		this.markersLayer.clearLayers();
 
-		const grouped = new Map();
+		const grouped = this.groupOffersByLocation(offers);
 		const bounds = L.latLngBounds();
+
+		for (const [key, group] of grouped.entries()) {
+			const [lat, lng] = key.split(",").map(Number);
+			const marker = this.createOfferMarker(lat, lng, group);
+
+			this.markersLayer.addLayer(marker);
+			bounds.extend([lat, lng]);
+		}
+
+		this.fitMapToBounds(bounds);
+	}
+
+	groupOffersByLocation(offers) {
+		const grouped = new Map();
+
 		for (const offer of offers) {
 			const lat = Number(offer.location?.lat);
 			const lng = Number(offer.location?.lon);
@@ -81,176 +96,155 @@ export class MapManager {
 			grouped.get(key).push(offer);
 		}
 
-		for (const [key, group] of grouped.entries()) {
-			const [lat, lng] = key.split(",").map(Number);
+		return grouped;
+	}
 
-			const marker = L.marker([lat, lng]);
+	createOfferMarker(lat, lng, offers) {
+		const marker = L.marker([lat, lng]);
+		const popupState = { currentIndex: 0 };
 
-			let currentIndex = 0;
+		marker.bindPopup("", {
+			maxWidth: 260,
+			className: "olx-offer-popup",
+		});
 
-			const createPopupContent = () => {
-				const offer = group[currentIndex];
+		marker.on("popupopen", () => {
+			this.updatePopup(marker, offers, popupState);
+		});
 
-				const image = offer.photos?.[0]?.link;
+		return marker;
+	}
 
-				return `
-				<div
-					style="
-						width:240px;
-						font-family:Arial,sans-serif;
-					"
-				>
-					<img
-						src="${image}"
-						style="
-							width:100%;
-							height:180px;
-							object-fit:cover;
-							border-radius:8px;
-							display:block;
-						"
-					/>
+	updatePopup(marker, offers, popupState) {
+		const offer = offers[popupState.currentIndex];
+		const moveToOffer = (direction) => {
+			popupState.currentIndex = (popupState.currentIndex + direction + offers.length) % offers.length;
+			this.updatePopup(marker, offers, popupState);
+		};
 
-					<div style="margin-top:10px;">
-						<div
-							style="
-								font-size:14px;
-								font-weight:600;
-								line-height:1.4;
-								max-height:40px;
-								overflow:hidden;
-							"
-						>
-							${offer.title}
-						</div>
+		marker.setPopupContent(
+			this.getPopupContent({
+				offer,
+				currentIndex: popupState.currentIndex,
+				totalOffers: offers.length,
+				onPrevious: () => moveToOffer(-1),
+				onNext: () => moveToOffer(1),
+			})
+		);
+	}
 
-						<div
-							style="
-								margin-top:6px;
-								font-size:16px;
-								font-weight:bold;
-							"
-						>
-							${offer.price?.label ?? ""}
-						</div>
-					</div>
+	getPopupContent({ offer, currentIndex, totalOffers, onPrevious, onNext }) {
+		const image = offer.photos?.[0]?.link ?? "https://placehold.co/240x180/png?text=Brak+zdjęcia";
+		const container = document.createElement("div");
+		Object.assign(container.style, {
+			width: "240px",
+			fontFamily: "Arial,sans-serif",
+		});
 
-					<div
-						style="
-							display:flex;
-							align-items:center;
-							justify-content:space-between;
-							margin-top:14px;
-						"
-					>
-						<button
-							class="popup-prev"
-							style="
-								cursor:pointer;
-								border:none;
-								background:#f1f1f1;
-								padding:6px 10px;
-								border-radius:6px;
-							"
-						>
-							←
-						</button>
+		const imageElement = document.createElement("img");
+		imageElement.src = image;
+		Object.assign(imageElement.style, {
+			width: "100%",
+			height: "180px",
+			objectFit: "cover",
+			borderRadius: "8px",
+			display: "block",
+		});
 
-						<div style="font-size:13px;">
-							${currentIndex + 1} / ${group.length}
-						</div>
+		const details = document.createElement("div");
+		details.style.marginTop = "10px";
 
-						<button
-							class="popup-next"
-							style="
-								cursor:pointer;
-								border:none;
-								background:#f1f1f1;
-								padding:6px 10px;
-								border-radius:6px;
-							"
-						>
-							→
-						</button>
-					</div>
+		const title = document.createElement("div");
+		title.textContent = offer.title ?? "";
+		Object.assign(title.style, {
+			fontSize: "14px",
+			fontWeight: "600",
+			lineHeight: "1.4",
+			maxHeight: "40px",
+			overflow: "hidden",
+		});
 
-					<a
-						href="${offer.url}"
-						target="_blank"
-						style="
-							display:block;
-							margin-top:14px;
-							text-align:center;
-							background:#002f34;
-							color:white;
-							padding:10px;
-							border-radius:8px;
-							text-decoration:none;
-							font-weight:600;
-						"
-					>
-						Otwórz ogłoszenie
-					</a>
-				</div>
-			`;
-			};
+		const price = document.createElement("div");
+		price.textContent = offer.price?.label ?? "";
+		Object.assign(price.style, {
+			marginTop: "6px",
+			fontSize: "16px",
+			fontWeight: "bold",
+		});
 
-			const updatePopup = () => {
-				marker.setPopupContent(createPopupContent());
+		details.append(title, price);
 
-				requestAnimationFrame(() => {
-					const popupEl = marker.getPopup()?.getElement();
+		const navigation = document.createElement("div");
+		Object.assign(navigation.style, {
+			display: "flex",
+			alignItems: "center",
+			justifyContent: "space-between",
+			marginTop: "14px",
+		});
 
-					if (!popupEl) {
-						return;
-					}
+		const previousButton = this.createPopupNavigationButton("<", onPrevious);
+		const counter = document.createElement("div");
+		counter.textContent = `${currentIndex + 1} / ${totalOffers}`;
+		counter.style.fontSize = "13px";
+		const nextButton = this.createPopupNavigationButton(">", onNext);
 
-					const prevBtn = popupEl.querySelector(".popup-prev");
-					const nextBtn = popupEl.querySelector(".popup-next");
+		navigation.append(previousButton, counter, nextButton);
 
-					prevBtn?.addEventListener("click", (e) => {
-						e.preventDefault();
-						e.stopPropagation();
+		const link = document.createElement("a");
+		link.href = offer.url;
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = "Otwórz ogłoszenie";
+		Object.assign(link.style, {
+			display: "block",
+			marginTop: "14px",
+			textAlign: "center",
+			background: "#002f34",
+			color: "white",
+			padding: "10px",
+			borderRadius: "8px",
+			textDecoration: "none",
+			fontWeight: "600",
+		});
 
-						currentIndex = (currentIndex - 1 + group.length) % group.length;
+		container.append(imageElement, details, navigation, link);
+		return container;
+	}
 
-						updatePopup();
-					});
+	createPopupNavigationButton(label, onClick) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.textContent = label;
+		Object.assign(button.style, {
+			cursor: "pointer",
+			border: "none",
+			background: "#f1f1f1",
+			padding: "6px 10px",
+			borderRadius: "6px",
+		});
 
-					nextBtn?.addEventListener("click", (e) => {
-						e.preventDefault();
-						e.stopPropagation();
+		button.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			onClick();
+		});
 
-						currentIndex = (currentIndex + 1) % group.length;
+		return button;
+	}
 
-						updatePopup();
-					});
-				});
-			};
-
-			marker.bindPopup("", {
-				maxWidth: 260,
-				className: "olx-offer-popup",
-			});
-
-			marker.on("popupopen", () => {
-				updatePopup();
-			});
-
-			this.markersLayer.addLayer(marker);
-			bounds.extend([lat, lng]);
+	fitMapToBounds(bounds) {
+		if (!bounds.isValid()) {
+			return;
 		}
 
-		if (bounds.isValid()) {
-			if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-				this.map.setView(bounds.getCenter(), 12);
-				return;
-			}
-
-			this.map.fitBounds(bounds, {
-				padding: [40, 40],
-				maxZoom: 13,
-			});
+		if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+			this.map.setView(bounds.getCenter(), 12);
+			return;
 		}
+
+		this.map.fitBounds(bounds, {
+			padding: [40, 40],
+			maxZoom: 13,
+		});
 	}
 }
