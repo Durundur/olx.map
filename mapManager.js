@@ -29,7 +29,7 @@ export class MapManager {
 			return this.map;
 		}
 
-		this.map = L.map(containerId).setView([52.2297, 21.0122], 13);
+		this.map = L.map(containerId).setView([52.087, 19.371], 7);
 		const streetLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
 		const satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}");
 		streetLayer.addTo(this.map);

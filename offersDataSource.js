@@ -56,66 +56,97 @@ export class OffersDataSource {
 	}
 
 	static injectFetchInterceptor() {
-		const inject = (fn) => {
-			const script = document.createElement("script");
-			script.textContent = `(${fn})();`;
-			document.documentElement.appendChild(script);
-			script.remove();
-		};
+		this.injectPageScript(() => {
+			const INTERCEPTOR_INSTALLED_KEY = "__olxMapFetchInterceptorInstalled";
+			const CURRENT_OFFERS_MESSAGE = "CURRENT_OFFERS";
+			const GRAPHQL_ENDPOINT = "/apigateway/graphql";
+			const LISTING_SEARCH_QUERY = "ListingSearchQuery";
+			const EXTENDED_DISTANCE_STRATEGY = "extended_distance";
 
-		inject(() => {
-			const isOfferQuery = (url, options) => {
-				if (!url.includes("/apigateway/graphql")) {
-					return false;
+			if (window[INTERCEPTOR_INSTALLED_KEY]) {
+				return;
+			}
+
+			window[INTERCEPTOR_INSTALLED_KEY] = true;
+
+			const getRequestUrl = (input) => {
+				if (typeof input === "string") {
+					return input;
 				}
+
+				return input?.url ?? "";
+			};
+
+			const parseRequestBody = (options) => {
 				try {
-					const bodyObj = JSON.parse(options?.body || "{}");
-					return bodyObj?.query?.includes("ListingSearchQuery");
+					return JSON.parse(options?.body || "{}");
 				} catch {
-					return false;
+					return null;
 				}
 			};
 
-			const isExtendedQuery = (options) => {
-				try {
-					const bodyObj = JSON.parse(options?.body || "{}");
-					const searchParameters = bodyObj?.variables?.searchParameters || [];
-					const extendedParam = searchParameters.find((p) => p.key === "strategy");
-					return extendedParam?.value === "extended_distance";
-				} catch {
+			const isOfferQuery = (input, body) => {
+				const url = getRequestUrl(input);
+
+				if (!url.includes(GRAPHQL_ENDPOINT)) {
 					return false;
 				}
+
+				return body?.query?.includes(LISTING_SEARCH_QUERY) ?? false;
+			};
+
+			const isExtendedQuery = (body) => {
+				const searchParameters = body?.variables?.searchParameters || [];
+				const extendedParam = searchParameters.find((p) => p.key === "strategy");
+				return extendedParam?.value === EXTENDED_DISTANCE_STRATEGY;
+			};
+
+			const mapOffer = (offer) => {
+				const priceParam = offer.params.find((p) => p.key === "price");
+
+				return {
+					id: offer.id,
+					title: offer.title,
+					location: offer.map,
+					price: {
+						label: priceParam?.value?.label,
+						value: priceParam?.value?.value,
+						currency: priceParam?.value?.currency,
+					},
+					photos: offer.photos,
+					url: offer.url,
+				};
+			};
+
+			const getOffersFromResponse = (responseBody) => {
+				return responseBody?.data?.clientCompatibleListings?.data?.map(mapOffer) || [];
+			};
+
+			const postOffers = (offers, requestBody) => {
+				window.postMessage({
+					type: CURRENT_OFFERS_MESSAGE,
+					payload: {
+						offers,
+						isExtendedQuery: isExtendedQuery(requestBody),
+					},
+				});
 			};
 
 			const originalFetch = window.fetch;
 
 			window.fetch = async (...args) => {
 				const [url, options] = args;
+				const requestBody = parseRequestBody(options);
 
 				const response = await originalFetch(...args);
-				if (!isOfferQuery(url, options)) {
+				if (!isOfferQuery(url, requestBody)) {
 					return response;
 				}
 
 				const clonedResponse = response.clone();
 				try {
-					const res = await clonedResponse.json();
-					const offersToStore = res?.data?.clientCompatibleListings?.data?.map((offer) => {
-						const priceParam = offer.params.find((p) => p.key === "price");
-						return {
-							id: offer.id,
-							title: offer.title,
-							location: offer.map,
-							price: {
-								label: priceParam.value.label,
-								value: priceParam.value.value,
-								currency: priceParam.value.currency,
-							},
-							photos: offer.photos,
-							url: offer.url,
-						};
-					});
-					window.postMessage({ type: "CURRENT_OFFERS", payload: { offers: offersToStore, isExtendedQuery: isExtendedQuery(options) } });
+					const responseBody = await clonedResponse.json();
+					postOffers(getOffersFromResponse(responseBody), requestBody);
 					return response;
 				} catch (e) {
 					console.error("Failed to parse response:", e);
@@ -123,5 +154,12 @@ export class OffersDataSource {
 				}
 			};
 		});
+	}
+
+	static injectPageScript(fn) {
+		const script = document.createElement("script");
+		script.textContent = `(${fn})();`;
+		document.documentElement.appendChild(script);
+		script.remove();
 	}
 }
