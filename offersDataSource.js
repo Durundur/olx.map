@@ -23,6 +23,7 @@ export class OffersDataSource {
 			this.extendedOffers = offers;
 		} else {
 			this.baseOffers = offers;
+			this.extendedOffers = [];
 		}
 		this.notify();
 	}
