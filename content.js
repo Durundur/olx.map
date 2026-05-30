@@ -89,14 +89,7 @@ function addMap() {
 	const wrapper = document.createElement("div");
 	wrapper.className = "olx-map-wrapper";
 
-	const viewportWidth = window.innerWidth;
-	const wrapperWidth = viewportWidth * 0.96;
-	const parentWidth = listContainerParent.getBoundingClientRect().width;
-
-	const offset = (wrapperWidth - parentWidth) / 2;
-	wrapper.style.left = `-${offset}px`;
-
-	listContainer.style.overflowY = "scroll";
+	listContainer.classList.add("olx-map-offers-list");
 	wrapper.appendChild(listContainer);
 	wrapper.appendChild(createMapContainer());
 

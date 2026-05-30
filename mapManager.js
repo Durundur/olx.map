@@ -117,23 +117,31 @@ export class MapManager {
 	}
 
 	focusOfferElementInList(offerId) {
-		const list = document.querySelector(OFFERS_LIST_SELECTOR);
-		if (!list) return;
+		const focusClass = "olx-map-offer-focussed";
 
-		const element = list.querySelector(`[id="${offerId}"]`);
+		const offerLists = document.querySelectorAll(OFFERS_LIST_SELECTOR);
+		if (!offerLists) {
+			return;
+		}
 
-		if (!element) return;
+		for (const list of offerLists) {
+			const element = list.querySelector(`[id="${offerId}"]`);
+			if (!element) {
+				continue;
+			}
 
-		element.scrollIntoView({
-			behavior: "smooth",
-			block: "center",
-		});
+			element.scrollIntoView({
+				behavior: "smooth",
+				block: "center",
+			});
 
-		element.classList.add('olx-map-offer-focussed');
+			var focussedElement = document.querySelector(`.${focusClass}`);
+			if (focussedElement) {
+				focussedElement.classList.remove(focusClass);
+			}
 
-		// setTimeout(() => {
-		// 	element.classList.remove(olx-map-offer-focussed);
-		// }, 1000);
+			element.classList.add(focusClass);
+		}
 	}
 
 	updatePopup(marker, offers, popupState) {
@@ -160,78 +168,37 @@ export class MapManager {
 	getPopupContent({ offer, currentIndex, totalOffers, onPrevious, onNext }) {
 		const image = offer.photos?.[0]?.link ?? "https://placehold.co/240x180/png?text=Brak+zdjęcia";
 		const container = document.createElement("div");
-		Object.assign(container.style, {
-			width: "240px",
-			fontFamily: "Arial,sans-serif",
-		});
+		container.className = "olx-map-popup";
 
 		const imageElement = document.createElement("img");
 		imageElement.src = image;
-		Object.assign(imageElement.style, {
-			width: "100%",
-			height: "180px",
-			objectFit: "cover",
-			borderRadius: "8px",
-			display: "block",
-		});
+		imageElement.className = "olx-map-popup__image";
 
 		const details = document.createElement("div");
-		details.style.marginTop = "10px";
+		details.className = "olx-map-popup__details";
 
 		const title = document.createElement("div");
 		title.textContent = offer.title ?? "";
-		Object.assign(title.style, {
-			fontSize: "14px",
-			fontWeight: "600",
-			lineHeight: "1.4",
-			maxHeight: "40px",
-			overflow: "hidden",
-		});
+		title.className = "olx-map-popup__title";
 
 		const price = document.createElement("div");
 		price.textContent = offer.price?.label ?? "";
-		Object.assign(price.style, {
-			marginTop: "6px",
-			fontSize: "16px",
-			fontWeight: "bold",
-		});
+		price.className = "olx-map-popup__price";
 
 		details.append(title, price);
 
 		const navigation = document.createElement("div");
-		Object.assign(navigation.style, {
-			display: "flex",
-			alignItems: "center",
-			justifyContent: "space-between",
-			marginTop: "14px",
-		});
+		navigation.className = "olx-map-popup__navigation";
 
 		const previousButton = this.createPopupNavigationButton("<", onPrevious);
 		const nextButton = this.createPopupNavigationButton(">", onNext);
 		const counter = document.createElement("div");
 		counter.textContent = `${currentIndex + 1} / ${totalOffers}`;
-		counter.style.fontSize = "13px";
+		counter.className = "olx-map-popup__counter";
 
 		navigation.append(previousButton, counter, nextButton);
 
-		const link = document.createElement("a");
-		link.href = offer.url;
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
-		link.textContent = "Otwórz ogłoszenie";
-		Object.assign(link.style, {
-			display: "block",
-			marginTop: "14px",
-			textAlign: "center",
-			background: "#002f34",
-			color: "white",
-			padding: "10px",
-			borderRadius: "8px",
-			textDecoration: "none",
-			fontWeight: "600",
-		});
-
-		container.append(imageElement, details, navigation, link);
+		container.append(imageElement, details, navigation);
 		return container;
 	}
 
@@ -239,13 +206,7 @@ export class MapManager {
 		const button = document.createElement("button");
 		button.type = "button";
 		button.textContent = label;
-		Object.assign(button.style, {
-			cursor: "pointer",
-			border: "none",
-			background: "#f1f1f1",
-			padding: "6px 10px",
-			borderRadius: "6px",
-		});
+		button.className = "olx-map-popup__navigation-button";
 
 		button.addEventListener("click", (event) => {
 			event.preventDefault();
