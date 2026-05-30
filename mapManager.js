@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { OFFERS_LIST_SELECTOR } from "./consts.js";
 
 L.Icon.Default.mergeOptions({
 	iconUrl: markerIcon,
@@ -115,12 +116,35 @@ export class MapManager {
 		return marker;
 	}
 
+	focusOfferElementInList(offerId) {
+		const list = document.querySelector(OFFERS_LIST_SELECTOR);
+		if (!list) return;
+
+		const element = list.querySelector(`[id="${offerId}"]`);
+
+		if (!element) return;
+
+		element.scrollIntoView({
+			behavior: "smooth",
+			block: "center",
+		});
+
+		element.classList.add('olx-map-offer-focussed');
+
+		// setTimeout(() => {
+		// 	element.classList.remove(olx-map-offer-focussed);
+		// }, 1000);
+	}
+
 	updatePopup(marker, offers, popupState) {
-		const offer = offers[popupState.currentIndex];
 		const moveToOffer = (direction) => {
 			popupState.currentIndex = (popupState.currentIndex + direction + offers.length) % offers.length;
 			this.updatePopup(marker, offers, popupState);
 		};
+
+		const offer = offers[popupState.currentIndex];
+
+		this.focusOfferElementInList(offer.id);
 
 		marker.setPopupContent(
 			this.getPopupContent({
@@ -183,10 +207,10 @@ export class MapManager {
 		});
 
 		const previousButton = this.createPopupNavigationButton("<", onPrevious);
+		const nextButton = this.createPopupNavigationButton(">", onNext);
 		const counter = document.createElement("div");
 		counter.textContent = `${currentIndex + 1} / ${totalOffers}`;
 		counter.style.fontSize = "13px";
-		const nextButton = this.createPopupNavigationButton(">", onNext);
 
 		navigation.append(previousButton, counter, nextButton);
 

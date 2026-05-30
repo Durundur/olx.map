@@ -1,13 +1,9 @@
 import { MapManager } from "./mapManager.js";
 import { OffersDataSource } from "./offersDataSource.js";
+import "./content.css";
 import map from "./icons/map.svg";
+import { MAP_CONTAINER_ID, MAP_VIEW_BUTTON_ID, OFFERS_LIST_CONTAINER_SELECTOR, VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR } from "./consts.js";
 
-const MAP_VIEW_BUTTON_ID = "map-view-button";
-const ACTIVE_COLOR = "#02282C";
-const INACTIVE_COLOR = "#7F9799";
-const MAP_CONTAINER_ID = "map-container";
-
-let defaultView = null;
 OffersDataSource.init();
 addButton();
 
@@ -23,24 +19,25 @@ observer.observe(document.body, {
 function createButton() {
 	const button = document.createElement("button");
 	button.id = MAP_VIEW_BUTTON_ID;
-	button.style.width = "24px";
-	button.style.height = "24px";
-	button.style.background = "none";
-	button.style.border = "none";
-	button.style.cursor = "pointer";
-	button.style.padding = "0";
+	button.className = MAP_VIEW_BUTTON_ID;
 	button.innerHTML = map;
 
 	let isActive = false;
-	function updateButtonColor() {
-		button.style.color = isActive ? ACTIVE_COLOR : INACTIVE_COLOR;
+
+	function updateState() {
+		if (isActive) {
+			button.classList.add("active");
+		} else {
+			button.classList.remove("active");
+		}
 	}
 
-	updateButtonColor();
+	updateState();
 
 	button.addEventListener("click", () => {
 		isActive = !isActive;
-		updateButtonColor();
+		updateState();
+
 		if (isActive) {
 			addMap();
 		} else {
@@ -52,7 +49,7 @@ function createButton() {
 }
 
 function addButton() {
-	const container = document.querySelector("[data-testid='view-type-container']");
+	const container = document.querySelector(VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR);
 	if (!container) {
 		return;
 	}
@@ -69,21 +66,18 @@ function addButton() {
 function createMapContainer() {
 	const mapContainer = document.createElement("div");
 	mapContainer.id = MAP_CONTAINER_ID;
-	mapContainer.style.position = "relative";
-	mapContainer.style.height = "100%";
-	mapContainer.style.width = "100%";
-
+	mapContainer.className = MAP_CONTAINER_ID;
 	return mapContainer;
 }
 
 function addMap() {
-	const listContainer = document.querySelector(".listing-grid-container");
+	const listContainer = document.querySelector(OFFERS_LIST_CONTAINER_SELECTOR);
 	if (!listContainer) {
 		return;
 	}
 
-	const list = document.querySelector("[data-testid='listing-grid']");
-	if (!list) {
+	const listContainerParent = listContainer.parentNode;
+	if (!listContainerParent) {
 		return;
 	}
 
@@ -92,22 +86,24 @@ function addMap() {
 		return;
 	}
 
-	if (!defaultView) {
-		defaultView = { listParent: list.parentNode, nextSibling: list.nextSibling, listStyle: { overflowY: list.style.overflowY }, wrapper: null };
-	}
-
 	const wrapper = document.createElement("div");
-	wrapper.style.display = "flex";
-	wrapper.style.height = "90vh";
-	wrapper.style.width = "98vw";
-	wrapper.style.marginLeft = "calc(51% - 50vw)";
+	wrapper.className = "olx-map-wrapper";
 
-	list.style.overflowY = "scroll";
-	wrapper.appendChild(list);
+	const viewportWidth = window.innerWidth;
+	const wrapperWidth = viewportWidth * 0.96;
+	const parentWidth = listContainerParent.getBoundingClientRect().width;
+
+	const offset = (wrapperWidth - parentWidth) / 2;
+	wrapper.style.left = `-${offset}px`;
+
+	listContainer.style.overflowY = "scroll";
+	wrapper.appendChild(listContainer);
 	wrapper.appendChild(createMapContainer());
-	listContainer.prepend(wrapper);
-	defaultView.wrapper = wrapper;
+
+	listContainerParent.prepend(wrapper);
+
 	MapManager.getInstance().init(MAP_CONTAINER_ID);
+
 	OffersDataSource.subscribe((offers) => {
 		MapManager.getInstance().renderOffers(offers);
 	});
@@ -120,25 +116,4 @@ function removeMap() {
 	if (map) {
 		map.remove();
 	}
-
-	if (!defaultView) {
-		return;
-	}
-
-	const list = document.querySelector("[data-testid='listing-grid']");
-	if (!list) {
-		return;
-	}
-
-	list.style.overflowY = defaultView.listStyle.overflowY || "";
-
-	if (defaultView.listParent) {
-		defaultView.listParent.insertBefore(list, defaultView.nextSibling);
-	}
-
-	if (defaultView.wrapper) {
-		defaultView.wrapper.remove();
-	}
-
-	defaultView = null;
 }
