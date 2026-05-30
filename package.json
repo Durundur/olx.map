@@ -1,22 +1,22 @@
 {
   "name": "olx.map",
   "version": "1.0.0",
-  "description": "",
+  "description": "Adds a map view to OLX listings",
   "main": "content.js",
   "scripts": {
     "build": "esbuild ./content.js --bundle --outdir=dist --format=iife --loader:.css=css --loader:.png=dataurl --loader:.svg=text",
-    "dev": "npm run build -- --watch"
+    "dev": "npm run build -- --watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
-  "author": "",
+  "author": "Durundur",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^25.9.1",
     "leaflet": "^1.9.4",
-    "leaflet.markercluster": "^1.5.3",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "cpx": "^1.5.0",
-    "esbuild": "0.28.0"
+    "esbuild": "0.28.0",
+    "prettier": "^3.8.3"
   }
 }
