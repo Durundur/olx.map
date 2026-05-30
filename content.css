@@ -6,17 +6,17 @@
 }
 
 .olx-map-view-button {
-    width: 24px;
-    height: 24px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    color: var(--olx-map-inactive-color);
+	width: 24px;
+	height: 24px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	color: var(--olx-map-inactive-color);
 }
 
 .olx-map-view-button.active {
-    color: var(--olx-map-active-color);
+	color: var(--olx-map-active-color);
 }
 
 .olx-map-container {
@@ -30,7 +30,7 @@
 	display: flex;
 	height: 90vh;
 	width: 96vw;
-	left: calc((100vmax - 96vw) / 2);
+	margin-left: var(--olx-map-wrapper-offset, 0px);
 }
 
 .olx-map-offers-list {

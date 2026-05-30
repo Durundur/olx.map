@@ -1,0 +1,3 @@
+//opcja wlaczenia/wylaczenia pokazyania na mapie ofert ktore sa z extended_distance settings
+//opcja ulepszenia umieszczenia ogloszenia na mapie - na podstawie opisu ogloszenia, a nie tylko na podstawie danych z pola location
+//aktualnie jest tak ze trzeba po zaladowaniu strony wykonac request zeby zostalo to przechwycone przez interceptor i zeby ogloszenia zostaly pokazane na mapie, fajnie by bylo zeby to bylo zrobione automatycznie po zaladowaniu strony, bez koniecznosci wykonywania dodatkowego requestu

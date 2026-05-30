@@ -69,8 +69,7 @@ export class MapManager {
 		for (const [key, group] of grouped.entries()) {
 			const [lat, lng] = key.split(",").map(Number);
 			const marker = this.createOfferMarker(lat, lng, group);
-
-			this.markersLayer.addLayer(marker);
+			marker.addTo(this.markersLayer);
 			bounds.extend([lat, lng]);
 		}
 
@@ -187,18 +186,24 @@ export class MapManager {
 
 		details.append(title, price);
 
+		if (totalOffers <= 1) {
+			container.append(imageElement, details);
+			return container;
+		}
+
 		const navigation = document.createElement("div");
 		navigation.className = "olx-map-popup__navigation";
 
 		const previousButton = this.createPopupNavigationButton("<", onPrevious);
 		const nextButton = this.createPopupNavigationButton(">", onNext);
+
 		const counter = document.createElement("div");
 		counter.textContent = `${currentIndex + 1} / ${totalOffers}`;
 		counter.className = "olx-map-popup__counter";
 
 		navigation.append(previousButton, counter, nextButton);
-
 		container.append(imageElement, details, navigation);
+
 		return container;
 	}
 

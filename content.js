@@ -4,6 +4,9 @@ import "./content.css";
 import map from "./icons/map.svg";
 import { MAP_CONTAINER_ID, MAP_VIEW_BUTTON_ID, OFFERS_LIST_CONTAINER_SELECTOR, VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR } from "./consts.js";
 
+let mapWrapperResizeObserver = null;
+let mapWrapperResizeHandler = null;
+
 OffersDataSource.init();
 addButton();
 
@@ -70,6 +73,56 @@ function createMapContainer() {
 	return mapContainer;
 }
 
+function updateMapWrapperOffset(wrapper) {
+	const mapWrapperOffsetProperty = "--olx-map-wrapper-offset";
+
+	wrapper.style.setProperty(mapWrapperOffsetProperty, "0px");
+
+	const wrapperRect = wrapper.getBoundingClientRect();
+	const targetLeft = (window.innerWidth - wrapperRect.width) / 2;
+	const offset = targetLeft - wrapperRect.left;
+
+	wrapper.style.setProperty(mapWrapperOffsetProperty, `${offset}px`);
+}
+
+function setupMapWrapperPosition(wrapper, parent) {
+	let animationFrameId = null;
+
+	const scheduleUpdate = () => {
+		if (animationFrameId) {
+			cancelAnimationFrame(animationFrameId);
+		}
+
+		animationFrameId = requestAnimationFrame(() => {
+			updateMapWrapperOffset(wrapper);
+			animationFrameId = null;
+		});
+	};
+
+	mapWrapperResizeObserver?.disconnect();
+	if (mapWrapperResizeHandler) {
+		window.removeEventListener("resize", mapWrapperResizeHandler);
+	}
+
+	mapWrapperResizeHandler = scheduleUpdate;
+	window.addEventListener("resize", mapWrapperResizeHandler);
+
+	mapWrapperResizeObserver = new ResizeObserver(scheduleUpdate);
+	mapWrapperResizeObserver.observe(parent);
+
+	scheduleUpdate();
+}
+
+function cleanupMapWrapperPosition() {
+	mapWrapperResizeObserver?.disconnect();
+	mapWrapperResizeObserver = null;
+
+	if (mapWrapperResizeHandler) {
+		window.removeEventListener("resize", mapWrapperResizeHandler);
+		mapWrapperResizeHandler = null;
+	}
+}
+
 function addMap() {
 	const listContainer = document.querySelector(OFFERS_LIST_CONTAINER_SELECTOR);
 	if (!listContainer) {
@@ -81,19 +134,26 @@ function addMap() {
 		return;
 	}
 
+	const wrapperClass = "olx-map-wrapper";
+	const existingWrapper = document.querySelector(`.${wrapperClass}`);
+	if (existingWrapper) {
+		return;
+	}
+
 	const existingMap = document.getElementById(MAP_CONTAINER_ID);
 	if (existingMap) {
 		return;
 	}
 
 	const wrapper = document.createElement("div");
-	wrapper.className = "olx-map-wrapper";
+	wrapper.className = wrapperClass;
 
 	listContainer.classList.add("olx-map-offers-list");
 	wrapper.appendChild(listContainer);
 	wrapper.appendChild(createMapContainer());
 
 	listContainerParent.prepend(wrapper);
+	setupMapWrapperPosition(wrapper, listContainerParent);
 
 	MapManager.getInstance().init(MAP_CONTAINER_ID);
 
@@ -104,9 +164,21 @@ function addMap() {
 
 function removeMap() {
 	MapManager.getInstance().destroy();
+	cleanupMapWrapperPosition();
 
-	const map = document.querySelector(`#${MAP_CONTAINER_ID}`);
-	if (map) {
-		map.remove();
+	const wrapperClass = "olx-map-wrapper";
+	const existingWrapper = document.querySelector(`.${wrapperClass}`);
+	if (!existingWrapper) {
+		return;
 	}
+
+	const listContainer = existingWrapper.querySelector(OFFERS_LIST_CONTAINER_SELECTOR);
+	const wrapperParent = existingWrapper.parentNode;
+
+	if (listContainer && wrapperParent) {
+		listContainer.classList.remove("olx-map-offers-list");
+		wrapperParent.insertBefore(listContainer, existingWrapper);
+	}
+
+	existingWrapper.remove();
 }
