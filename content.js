@@ -1,5 +1,6 @@
 import { MapManager } from './mapManager.js';
 import { OffersDataSource } from './offersDataSource.js';
+import { ListingSortController } from './listingSortController.js';
 import './content.css';
 import map from './icons/map.svg';
 import {
@@ -13,16 +14,37 @@ let mapWrapperResizeObserver = null;
 let mapWrapperResizeHandler = null;
 
 OffersDataSource.init();
-addButton();
+observeDomRoot();
 
-const observer = new MutationObserver(() => {
-  addButton();
-});
+function observeDomRoot() {
+  const root = document.documentElement;
+  if (!root) {
+    return;
+  }
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-});
+  observer.observe(root, {
+    childList: true,
+    subtree: true,
+  });
+
+  if (document.body) {
+    return;
+  }
+
+  const bodyObserver = new MutationObserver(() => {
+    if (!document.body) {
+      return;
+    }
+
+    bodyObserver.disconnect();
+    addButton();
+  });
+
+  bodyObserver.observe(root, {
+    childList: true,
+    subtree: true,
+  });
+}
 
 function createButton() {
   const button = document.createElement('button');
