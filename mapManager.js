@@ -51,6 +51,7 @@ export class MapManager {
 
     this.map.remove();
     this.map = null;
+    this.markersLayer = null;
   }
 
   renderOffers(offers) {

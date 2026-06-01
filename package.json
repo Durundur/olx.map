@@ -2,9 +2,9 @@
   "name": "olx.map",
   "version": "1.0.0",
   "description": "Adds a map view to OLX listings",
-  "main": "content.js",
+  "main": "PageContentController.js",
   "scripts": {
-    "build": "npx esbuild ./content.js --bundle --outdir=dist --format=iife --loader:.css=css --loader:.png=dataurl --loader:.svg=text",
+    "build": "npx esbuild ./PageContentController.js --bundle --outdir=dist --entry-names=content --format=iife --loader:.css=css --loader:.png=dataurl --loader:.svg=text",
     "dev": "npm run build -- --watch",
     "format": "npx prettier --write ."
   },

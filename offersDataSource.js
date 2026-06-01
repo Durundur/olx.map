@@ -48,6 +48,10 @@ export class OffersDataSource {
     if (this.getOffers().length) {
       callback(this.getOffers());
     }
+
+    return () => {
+      this.subscribers = this.subscribers.filter((subscriber) => subscriber !== callback);
+    };
   }
 
   static notify() {
