@@ -30,12 +30,19 @@ export class MapManager {
     }
 
     this.map = L.map(containerId).setView([52.087, 19.371], 7);
+
     const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     const satelliteLayer = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     );
+
+    const baseMaps = {
+      Mapa: streetLayer,
+      Satelita: satelliteLayer,
+    };
+
     streetLayer.addTo(this.map);
-    L.control.layers({ Street: streetLayer, Satellite: satelliteLayer }).addTo(this.map);
+    L.control.layers(baseMaps).addTo(this.map);
 
     requestAnimationFrame(() => {
       this.map.invalidateSize();
@@ -239,5 +246,37 @@ export class MapManager {
       padding: [40, 40],
       maxZoom: 13,
     });
+  }
+
+  createSettingsControl() {
+    const settings = L.control({ position: 'topleft' });
+
+    settings.onAdd = () => {
+      const container = L.DomUtil.create('div');
+
+      const toggleButton = document.createElement('button');
+      toggleButton.className = 'olx-map-settings__button leaflet-control-layers';
+      toggleButton.textContent = '⚙️';
+
+      const panel = document.createElement('div');
+      panel.className = 'olx-map-settings__panel leaflet-control-layers';
+      panel.style.display = 'none';
+
+      toggleButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      });
+
+      container.append(toggleButton, panel);
+
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.disableScrollPropagation(container);
+
+      return container;
+    };
+
+    return settings;
   }
 }

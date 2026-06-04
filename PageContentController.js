@@ -177,10 +177,14 @@ class PageContentController {
 
     MapManager.getInstance().init(MAP_CONTAINER_ID);
 
-    this.offersUnsubscribe = OffersDataSource.subscribe((offers) => {
-      console.log(offers);
-      MapManager.getInstance().renderOffers(offers);
-    });
+    this.offersUnsubscribe = OffersDataSource.subscribe(
+      (offers) => {
+        MapManager.getInstance().renderOffers(offers);
+      },
+      () => ({
+        includeExtended: true,
+      }),
+    );
 
     if (OffersDataSource.getOffers().length === 0) {
       OffersQueryParams.refreshQueryOrderParam();

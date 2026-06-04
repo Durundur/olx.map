@@ -1,6 +1,6 @@
 export class OffersDataSource {
   static initialized = false;
-  static baseOffers = [];
+  static defaultOffers = [];
   static extendedOffers = [];
   static subscribers = [];
 
@@ -14,16 +14,21 @@ export class OffersDataSource {
     this.listenMessages();
   }
 
-  static getOffers() {
-    return [...this.baseOffers, ...this.extendedOffers];
+  static getOffers(filters = {}) {
+    const { includeExtended = true } = filters;
+
+    if (includeExtended) {
+      return [...this.defaultOffers, ...this.extendedOffers];
+    }
+
+    return this.defaultOffers;
   }
 
-  static setOffers({ offers, isExtendedQuery }) {
-    if (isExtendedQuery === true) {
-      this.extendedOffers = offers;
+  static setOffers({ offers, queryStrategy }) {
+    if (queryStrategy === null) {
+      this.defaultOffers = offers;
     } else {
-      this.baseOffers = offers;
-      this.extendedOffers = [];
+      this.extendedOffers = offers;
     }
     this.notify();
   }
@@ -42,21 +47,24 @@ export class OffersDataSource {
     });
   }
 
-  static subscribe(callback) {
-    this.subscribers.push(callback);
+  static subscribe(callback, getFilters = () => ({})) {
+    const subscriber = {
+      callback,
+      getFilters,
+    };
 
-    if (this.getOffers().length) {
-      callback(this.getOffers());
-    }
+    this.subscribers.push(subscriber);
+
+    callback(this.getOffers(getFilters()));
 
     return () => {
-      this.subscribers = this.subscribers.filter((subscriber) => subscriber !== callback);
+      this.subscribers = this.subscribers.filter((s) => s !== subscriber);
     };
   }
 
   static notify() {
-    this.subscribers.forEach((callback) => {
-      callback(this.getOffers());
+    this.subscribers.forEach(({ callback, getFilters }) => {
+      callback(this.getOffers(getFilters()));
     });
   }
 
@@ -66,7 +74,6 @@ export class OffersDataSource {
       const CURRENT_OFFERS_MESSAGE = 'CURRENT_OFFERS';
       const GRAPHQL_ENDPOINT = '/apigateway/graphql';
       const LISTING_SEARCH_QUERY = 'ListingSearchQuery';
-      const EXTENDED_DISTANCE_STRATEGY = 'extended_distance';
 
       if (window[INTERCEPTOR_INSTALLED_KEY]) {
         return;
@@ -100,10 +107,10 @@ export class OffersDataSource {
         return body?.query?.includes(LISTING_SEARCH_QUERY) ?? false;
       };
 
-      const isExtendedQuery = (body) => {
+      const getQueryStrategy = (body) => {
         const searchParameters = body?.variables?.searchParameters || [];
-        const extendedParam = searchParameters.find((p) => p.key === 'strategy');
-        return extendedParam?.value === EXTENDED_DISTANCE_STRATEGY;
+        const strategyParam = searchParameters.find((p) => p.key === 'strategy');
+        return strategyParam?.value ?? null;
       };
 
       const mapOffer = (offer) => {
@@ -132,7 +139,7 @@ export class OffersDataSource {
           type: CURRENT_OFFERS_MESSAGE,
           payload: {
             offers,
-            isExtendedQuery: isExtendedQuery(requestBody),
+            queryStrategy: getQueryStrategy(requestBody),
           },
         });
       };
