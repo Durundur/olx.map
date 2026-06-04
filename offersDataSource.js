@@ -119,6 +119,7 @@ export class OffersDataSource {
         return {
           id: offer.id,
           title: offer.title,
+          description: offer.description,
           location: offer.map,
           price: {
             label: priceParam?.value?.label,
