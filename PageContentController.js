@@ -1,6 +1,5 @@
 import { MapManager } from './MapManager.js';
 import { OffersDataSource } from './OffersDataSource.js';
-import { OffersQueryParams } from './OffersQueryParams.js';
 import './content.css';
 import map from './icons/map.svg';
 import {
@@ -13,7 +12,6 @@ import {
 class PageContentController {
   mapWrapperResizeObserver = null;
   mapWrapperResizeHandler = null;
-  offersUnsubscribe = null;
   observer = null;
 
   init() {
@@ -176,19 +174,6 @@ class PageContentController {
     this.setupMapWrapperPosition(wrapper, listContainerParent);
 
     MapManager.getInstance().init(MAP_CONTAINER_ID);
-
-    this.offersUnsubscribe = OffersDataSource.subscribe(
-      (offers) => {
-        MapManager.getInstance().renderOffers(offers);
-      },
-      () => ({
-        includeExtended: true,
-      }),
-    );
-
-    if (OffersDataSource.getOffers().length === 0) {
-      OffersQueryParams.refreshQueryOrderParam();
-    }
   }
 
   removeMap() {

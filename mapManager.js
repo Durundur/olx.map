@@ -3,6 +3,8 @@ import 'leaflet/dist/leaflet.css';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { OffersDataSource } from './OffersDataSource.js';
+import { OffersQueryParams } from './OffersQueryParams.js';
 import { OFFERS_LIST_SELECTOR } from './consts.js';
 
 L.Icon.Default.mergeOptions({
@@ -15,6 +17,11 @@ export class MapManager {
   static instance = null;
   map = null;
   markersLayer = null;
+  offersUnsubscribe = null;
+  settings = {
+    includeExtendedOffers: false,
+    enhanceMarkerLocations: false,
+  };
 
   static getInstance() {
     if (!MapManager.instance) {
@@ -35,14 +42,23 @@ export class MapManager {
     const satelliteLayer = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     );
+    const includeExtendedLayer = L.layerGroup();
+    const enhanceMarkerLocationsLayer = L.layerGroup();
 
     const baseMaps = {
       Mapa: streetLayer,
       Satelita: satelliteLayer,
     };
 
+    const overlayMaps = {
+      'Ogłoszenia dodatkowe': includeExtendedLayer,
+      'Lokalizacje ogłoszeń na podstawie opisu': enhanceMarkerLocationsLayer,
+    };
+
     streetLayer.addTo(this.map);
-    L.control.layers(baseMaps).addTo(this.map);
+    L.control.layers(baseMaps, overlayMaps).addTo(this.map);
+
+    this.subscribeToOffers();
 
     requestAnimationFrame(() => {
       this.map.invalidateSize();
@@ -59,6 +75,27 @@ export class MapManager {
     this.map.remove();
     this.map = null;
     this.markersLayer = null;
+  }
+
+  subscribeToOffers() {
+    this.unsubscribeFromOffers();
+    this.offersUnsubscribe = OffersDataSource.subscribe(
+      (offers) => this.renderOffers(offers),
+      () => ({
+        includeExtended: this.settings.includeExtendedOffers,
+      }),
+    );
+
+    if (OffersDataSource.getOffers().length === 0) {
+      OffersQueryParams.refreshQueryOrderParam();
+    }
+  }
+
+  unsubscribeFromOffers() {
+    if (this.offersUnsubscribe) {
+      this.offersUnsubscribe();
+      this.offersUnsubscribe = null;
+    }
   }
 
   renderOffers(offers) {
@@ -89,8 +126,8 @@ export class MapManager {
     const grouped = new Map();
 
     for (const offer of offers) {
-      const lat = Number(offer.location?.lat);
-      const lng = Number(offer.location?.lon);
+      const lat = Number(offer?.location?.lat);
+      const lng = Number(offer?.location?.lon);
 
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
         continue;
@@ -138,9 +175,11 @@ export class MapManager {
         continue;
       }
 
-      element.scrollIntoView({
+      const scrollContainer = list.parentElement;
+      const top = element.offsetTop - scrollContainer.offsetTop - scrollContainer.clientHeight / 2 + element.clientHeight / 2;
+      scrollContainer.scrollTo({
+        top,
         behavior: 'smooth',
-        block: 'center',
       });
 
       var focussedElement = document.querySelector(`.${focusClass}`);
@@ -246,37 +285,5 @@ export class MapManager {
       padding: [40, 40],
       maxZoom: 13,
     });
-  }
-
-  createSettingsControl() {
-    const settings = L.control({ position: 'topleft' });
-
-    settings.onAdd = () => {
-      const container = L.DomUtil.create('div');
-
-      const toggleButton = document.createElement('button');
-      toggleButton.className = 'olx-map-settings__button leaflet-control-layers';
-      toggleButton.textContent = '⚙️';
-
-      const panel = document.createElement('div');
-      panel.className = 'olx-map-settings__panel leaflet-control-layers';
-      panel.style.display = 'none';
-
-      toggleButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-      });
-
-      container.append(toggleButton, panel);
-
-      L.DomEvent.disableClickPropagation(container);
-      L.DomEvent.disableScrollPropagation(container);
-
-      return container;
-    };
-
-    return settings;
   }
 }
