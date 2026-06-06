@@ -17,7 +17,7 @@ export class MapManager {
   static instance = null;
   map = null;
   markersLayer = null;
-  overlays = null;
+  overlays = null; 
   offersUnsubscribe = null;
   settings = {
     includeExtendedOffers: false,
