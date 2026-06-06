@@ -17,6 +17,7 @@ export class MapManager {
   static instance = null;
   map = null;
   markersLayer = null;
+  overlays = null;
   offersUnsubscribe = null;
   settings = {
     includeExtendedOffers: false,
@@ -39,26 +40,25 @@ export class MapManager {
     this.map = L.map(containerId).setView([52.087, 19.371], 7);
 
     const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
-    const satelliteLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    );
-    const includeExtendedLayer = L.layerGroup();
-    const enhanceMarkerLocationsLayer = L.layerGroup();
-
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
     const baseMaps = {
       Mapa: streetLayer,
       Satelita: satelliteLayer,
     };
 
-    const overlayMaps = {
-      'Ogłoszenia dodatkowe': includeExtendedLayer,
-      'Lokalizacje ogłoszeń na podstawie opisu': enhanceMarkerLocationsLayer,
+    this.overlays = {
+      includeExtendedOffers: L.layerGroup(),
+      enhanceMarkerLocations: L.layerGroup(),
     };
-
+    const overlaysLayer = {
+      'Ogłoszenia dodatkowe': this.overlays.includeExtendedOffers,
+      'Lokalizacje ogłoszeń na podstawie opisu': this.overlays.enhanceMarkerLocations,
+    };
     streetLayer.addTo(this.map);
-    L.control.layers(baseMaps, overlayMaps).addTo(this.map);
+    L.control.layers(baseMaps, overlaysLayer).addTo(this.map);
 
     this.subscribeToOffers();
+    this.registerOverlaysEvents();
 
     requestAnimationFrame(() => {
       this.map.invalidateSize();
@@ -77,12 +77,25 @@ export class MapManager {
     this.markersLayer = null;
   }
 
+  registerOverlaysEvents() {
+    this.map.on('overlayadd overlayremove', () => {
+      this.syncSettings();
+    });
+  }
+
+  syncSettings() {
+    this.settings.includeExtendedOffers = this.map.hasLayer(this.overlays.includeExtendedOffers);
+    this.settings.enhanceMarkerLocations = this.map.hasLayer(this.overlays.enhanceMarkerLocations);
+    OffersDataSource.notify();
+  }
+
   subscribeToOffers() {
     this.unsubscribeFromOffers();
     this.offersUnsubscribe = OffersDataSource.subscribe(
       (offers) => this.renderOffers(offers),
       () => ({
         includeExtended: this.settings.includeExtendedOffers,
+        enhanceMarkerLocations: this.settings.enhanceMarkerLocations,
       }),
     );
 
@@ -193,8 +206,7 @@ export class MapManager {
 
   updatePopup(marker, offers, popupState) {
     const moveToOffer = (direction) => {
-      popupState.currentIndex =
-        (popupState.currentIndex + direction + offers.length) % offers.length;
+      popupState.currentIndex = (popupState.currentIndex + direction + offers.length) % offers.length;
       this.updatePopup(marker, offers, popupState);
     };
 

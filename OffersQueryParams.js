@@ -4,12 +4,7 @@ export class OffersQueryParams {
   static refreshQueryOrderParam() {
     const url = new URL(window.location.href);
     const originalOrder = url.searchParams.get(this.urlOrderParam) ?? 'relevance:desc';
-    const orders = [
-      'relevance:desc',
-      'created_at:desc',
-      'filter_float_price:asc',
-      'filter_float_price:desc',
-    ];
+    const orders = ['relevance:desc', 'created_at:desc', 'filter_float_price:asc', 'filter_float_price:desc'];
 
     const temporaryOrder = orders.find((o) => o !== originalOrder) ?? orders[0];
     const tempUrl = new URL(url);

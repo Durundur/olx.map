@@ -2,12 +2,7 @@ import { MapManager } from './MapManager.js';
 import { OffersDataSource } from './OffersDataSource.js';
 import './content.css';
 import map from './icons/map.svg';
-import {
-  MAP_CONTAINER_ID,
-  MAP_VIEW_BUTTON_ID,
-  OFFERS_LIST_CONTAINER_SELECTOR,
-  VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR,
-} from './consts.js';
+import { MAP_CONTAINER_ID, MAP_VIEW_BUTTON_ID, OFFERS_LIST_CONTAINER_SELECTOR, VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR } from './consts.js';
 
 class PageContentController {
   mapWrapperResizeObserver = null;

@@ -15,7 +15,7 @@ export class OffersDataSource {
   }
 
   static getOffers(filters = {}) {
-    const { includeExtended = true } = filters;
+    const { includeExtended = false, enhanceMarkerLocations = false } = filters;
 
     if (includeExtended) {
       return [...this.defaultOffers, ...this.extendedOffers];
