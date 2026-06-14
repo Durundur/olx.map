@@ -17,11 +17,10 @@ export class MapManager {
   static instance = null;
   map = null;
   markersLayer = null;
-  overlays = null; 
+  overlays = null;
   offersUnsubscribe = null;
   settings = {
     includeExtendedOffers: false,
-    enhanceMarkerLocations: false,
   };
 
   static getInstance() {
@@ -48,11 +47,9 @@ export class MapManager {
 
     this.overlays = {
       includeExtendedOffers: L.layerGroup(),
-      enhanceMarkerLocations: L.layerGroup(),
     };
     const overlaysLayer = {
       'Ogłoszenia dodatkowe': this.overlays.includeExtendedOffers,
-      'Lokalizacje ogłoszeń na podstawie opisu': this.overlays.enhanceMarkerLocations,
     };
     streetLayer.addTo(this.map);
     L.control.layers(baseMaps, overlaysLayer).addTo(this.map);
@@ -85,7 +82,6 @@ export class MapManager {
 
   syncSettings() {
     this.settings.includeExtendedOffers = this.map.hasLayer(this.overlays.includeExtendedOffers);
-    this.settings.enhanceMarkerLocations = this.map.hasLayer(this.overlays.enhanceMarkerLocations);
     OffersDataSource.notify();
   }
 
@@ -95,7 +91,6 @@ export class MapManager {
       (offers) => this.renderOffers(offers),
       () => ({
         includeExtended: this.settings.includeExtendedOffers,
-        enhanceMarkerLocations: this.settings.enhanceMarkerLocations,
       }),
     );
 
