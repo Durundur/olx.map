@@ -4,7 +4,7 @@
   "description": "Adds a map view to OLX listings",
   "main": "PageContentController.js",
   "scripts": {
-    "build": "npx esbuild ./PageContentController.js --bundle --outdir=dist --entry-names=content --format=iife --loader:.css=css --loader:.png=dataurl --loader:.svg=text",
+    "build": "npx esbuild ./PageContentController.js --bundle --outfile=dist/content.js --format=iife --loader:.css=css --loader:.png=dataurl --loader:.svg=text && npx esbuild ./PageScript.js --bundle --outfile=dist/page-script.js --format=iife",
     "dev": "npm run build -- --watch",
     "format": "npx prettier --write ."
   },
