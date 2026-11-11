@@ -37,11 +37,38 @@
   overflow-y: scroll;
 }
 
+.olx-map-offer-card {
+  position: relative;
+}
+
 .olx-map-offer-focussed {
   border: 2px solid var(--olx-map-active-color) !important;
   border-radius: 8px;
   transition: all 0.2s ease;
   overflow: hidden;
+}
+
+.olx-map-offer-button {
+  position: absolute;
+  right: 40px;
+  bottom: 8px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border: none;
+  color: var(--olx-map-active-color);
+  background: none;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.olx-map-offer-button svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .olx-map-popup {

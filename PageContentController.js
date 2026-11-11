@@ -2,15 +2,24 @@ import { MapManager } from './MapManager.js';
 import { OffersDataSource } from './OffersDataSource.js';
 import './content.css';
 import map from './icons/map.svg';
-import { MAP_CONTAINER_ID, MAP_VIEW_BUTTON_ID, OFFERS_LIST_CONTAINER_SELECTOR, VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR } from './consts.js';
+import {
+  MAP_CONTAINER_ID,
+  MAP_VIEW_BUTTON_ID,
+  OFFER_LOCATION_DATE_SELECTOR,
+  OFFER_MAP_BUTTON_SELECTOR,
+  OFFERS_LIST_CONTAINER_SELECTOR,
+  VIEW_TYPE_BUTTONS_CONTAINER_SELECTOR,
+} from './consts.js';
 
 class PageContentController {
   mapWrapperResizeObserver = null;
   mapWrapperResizeHandler = null;
   observer = null;
+  mapEnabled = false;
 
   init() {
     OffersDataSource.init();
+    OffersDataSource.subscribe(() => this.addOfferMapButtons());
     this.initializeButtonObserver();
   }
 
@@ -23,6 +32,7 @@ class PageContentController {
     if (!this.observer) {
       this.observer = new MutationObserver(() => {
         this.addButton();
+        this.addOfferMapButtons();
       });
     }
 
@@ -30,6 +40,47 @@ class PageContentController {
       childList: true,
       subtree: true,
     });
+
+    this.addOfferMapButtons();
+  }
+
+  addOfferMapButtons() {
+    if (!this.mapEnabled) {
+      return;
+    }
+
+    const offers = OffersDataSource.getOffers({ includeExtended: true });
+
+    for (const offer of offers) {
+      const element = document.getElementById(String(offer.id));
+      if (!element || element.querySelector(OFFER_MAP_BUTTON_SELECTOR)) {
+        continue;
+      }
+
+      const locationElement = element.querySelector(OFFER_LOCATION_DATE_SELECTOR);
+      if (!locationElement) {
+        continue;
+      }
+
+      element.classList.add('olx-map-offer-card');
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.olxMapOfferButton = '';
+      button.dataset.offerId = String(offer.id);
+      button.className = 'olx-map-offer-button';
+      button.setAttribute('aria-label', 'Pokaż ogłoszenie na mapie');
+      button.title = 'Pokaż na mapie';
+      button.innerHTML = map;
+
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        MapManager.getInstance().focusOfferOnMap(offer.id);
+      });
+
+      element.appendChild(button);
+    }
   }
 
   createButton() {
@@ -55,13 +106,21 @@ class PageContentController {
       updateState();
 
       if (isActive) {
+        this.mapEnabled = true;
         this.addMap();
+        this.addOfferMapButtons();
       } else {
+        this.mapEnabled = false;
+        this.removeOfferMapButtons();
         this.removeMap();
       }
     });
 
     return button;
+  }
+
+  removeOfferMapButtons() {
+    document.querySelectorAll(OFFER_MAP_BUTTON_SELECTOR).forEach((button) => button.remove());
   }
 
   addButton() {

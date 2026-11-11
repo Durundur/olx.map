@@ -5,7 +5,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { OffersDataSource } from './OffersDataSource.js';
 import { OffersQueryParams } from './OffersQueryParams.js';
-import { OFFERS_LIST_SELECTOR } from './consts.js';
+import { OFFERS_LIST_CONTAINER_SELECTOR, OFFERS_LIST_SELECTOR } from './consts.js';
 
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
@@ -155,6 +155,7 @@ export class MapManager {
 
   createOfferMarker(lat, lng, offers) {
     const marker = L.marker([lat, lng]);
+    marker.offerIds = new Set(offers.map((offer) => String(offer.id)));
     const popupState = { currentIndex: 0 };
 
     marker.bindPopup('', {
@@ -167,6 +168,30 @@ export class MapManager {
     });
 
     return marker;
+  }
+
+  focusOfferOnMap(offerId) {
+    if (!this.map || !this.markersLayer) {
+      return;
+    }
+
+    const targetOfferId = String(offerId);
+    let targetMarker = null;
+
+    this.markersLayer.eachLayer((marker) => {
+      if (marker.offerIds?.has(targetOfferId)) {
+        targetMarker = marker;
+      }
+    });
+
+    if (!targetMarker) {
+      return;
+    }
+
+    this.map.panTo(targetMarker.getLatLng(), {
+      animate: true,
+    });
+    targetMarker.openPopup();
   }
 
   focusOfferElementInList(offerId) {
@@ -183,10 +208,17 @@ export class MapManager {
         continue;
       }
 
-      const scrollContainer = list.parentElement;
-      const top = element.offsetTop - scrollContainer.offsetTop - scrollContainer.clientHeight / 2 + element.clientHeight / 2;
+      const scrollContainer = list.closest(OFFERS_LIST_CONTAINER_SELECTOR);
+      if (!scrollContainer) {
+        continue;
+      }
+
+      const elementRect = element.getBoundingClientRect();
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const top = scrollContainer.scrollTop + elementRect.top - containerRect.top - (scrollContainer.clientHeight - element.clientHeight) / 2;
+
       scrollContainer.scrollTo({
-        top,
+        top: Math.max(0, Math.min(top, scrollContainer.scrollHeight - scrollContainer.clientHeight)),
         behavior: 'smooth',
       });
 
